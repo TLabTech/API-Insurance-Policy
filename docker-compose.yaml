@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:15
+    container_name: insurance_policy_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: insurance_policy_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: insurance_policy_app
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    container_name: insurance_policy_migrate
+    command: >
+      sh -c "npx typeorm-ts-node-commonjs migration:run -d dist/db/data-source.js"
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: insurance_policy_seed
+    command: >
+      sh -c "npx ts-node src/db/seeders/main.seeder.ts"
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+volumes:
+  pgdata:

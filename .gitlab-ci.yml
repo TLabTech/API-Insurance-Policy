@@ -1,0 +1,69 @@
+stages:
+  - build
+  # - test
+  - deploy
+
+default:
+  tags:
+    - "project"
+
+variables:
+  DEPLOY_PATH: "/mnt/training-bsb-be"
+  
+workflow:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      variables:
+        IMAGE_TAG: "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
+        # ENV_FILE: "$ENV_DEV"
+        # ENV_PATH: "$DEPLOY_PATH/.env/develop/.frontend-jogjalib.env"
+        COMPOSE_FILE: "docker-compose.prod.yaml"
+        COMPOSE_SERVICE: "app"
+        DOCKERFILE: "Dockerfile"
+
+    - when: never
+
+############################################ TEMPLATES ############################################
+.ssh_template:
+  image: alpine:3.21
+  before_script:
+    - apk update && apk add --no-cache openssh-client
+    - chmod 400 $ID_RSA
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - ssh-keyscan -H $SERVER_DEV >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+
+.docker_login_template:
+  before_script:
+    - echo $CI_JOB_TOKEN | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+
+############################################ BUILD ############################################
+deploy:
+  stage: deploy
+  needs: []
+  extends: .ssh_template
+  script:
+    - |
+      # Using $USER_DEV and $SERVER_DEV from global variables
+      ssh -i $ID_RSA $USER_DEV@$SERVER_DEV "
+        set -e
+        echo "Logging into GitLab Registry..."
+        echo "$CI_JOB_TOKEN" | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+        
+        echo "Changing to deployment directory..."
+        cd "$DEPLOY_PATH"
+
+        echo "Pulling code..."
+        git checkout -- . && git pull
+
+        echo "Building Image..."
+        docker compose -f $COMPOSE_FILE build --no-cache $COMPOSE_SERVICE
+
+        echo "Running docker compose for service..."
+        docker compose -f "$COMPOSE_FILE" up -d --force-recreate "$COMPOSE_SERVICE"
+        
+        echo "Deployment complete."
+      "
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  retry: 1
