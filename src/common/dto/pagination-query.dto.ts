@@ -17,5 +17,9 @@ export class PaginationQueryDto {
 
   @IsOptional()
   @IsString()
+  roleID?: string;
+
+  @IsOptional()
+  @IsString()
   search?: string;
 }

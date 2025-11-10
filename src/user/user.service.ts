@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Repository, ILike, FindOptionsWhere } from 'typeorm';
 import { User } from './user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -20,20 +20,35 @@ export class UserService {
 
   async findAll(
     paginationQuery: PaginationQueryDto,
+    roleID?: string,
     search?: string,
   ): Promise<PaginatedResponse<User>> {
     const page = Number(paginationQuery.page) || 1;
     const limit = Number(paginationQuery.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Buat kondisi where dinamis jika ada pencarian
-    const where = search
-      ? [
-          { email: ILike(`%${search}%`) },
-          { firstName: ILike(`%${search}%`) },
-          { lastName: ILike(`%${search}%`) },
-        ]
-      : undefined;
+    // Tipe eksplisit agar aman
+    let where: FindOptionsWhere<User>[] | FindOptionsWhere<User> | undefined;
+
+    if (search) {
+      const baseConditions: FindOptionsWhere<User>[] = [
+        { email: ILike(`%${search}%`) },
+        { firstName: ILike(`%${search}%`) },
+        { lastName: ILike(`%${search}%`) },
+      ];
+
+      where = roleID
+        ? baseConditions.map(
+            (condition) =>
+              ({
+                ...condition,
+                role: { id: Number.parseInt(roleID) },
+              }) as FindOptionsWhere<User>,
+          )
+        : baseConditions;
+    } else if (roleID) {
+      where = { role: { id: Number.parseInt(roleID) } } as FindOptionsWhere<User>;
+    }
 
     const [data, total_data] = await this.userRepository.findAndCount({
       where,

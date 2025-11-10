@@ -36,8 +36,9 @@ export class UserController {
   async findAll(
     @Query() paginationQuery: PaginationQueryDto,
     @Query('search') search?: string,
+    @Query('roleID') roleID?: string,
   ): Promise<PaginatedResponse<User>> {
-    return this.userService.findAll(paginationQuery, search);
+    return this.userService.findAll(paginationQuery, roleID, search);
   }
 
   // Place specific routes BEFORE parameterized routes to avoid conflicts
