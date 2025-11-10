@@ -136,6 +136,7 @@ export class SubmissionController {
     @Query('status') status?: string,
     @Query('productID') productID?: string,
     @Query('search') search?: string,
+    @Query('createdBy') createdBy?: string,
   ): Promise<PaginatedResponse<Submission>> {
     const branchID = req.user?.branchID;
     return await this.submissionService.findAll(
@@ -144,6 +145,7 @@ export class SubmissionController {
       productID,
       search,
       branchID,
+      createdBy,
     );
   }
 

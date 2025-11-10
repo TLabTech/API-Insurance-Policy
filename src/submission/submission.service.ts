@@ -121,6 +121,7 @@ export class SubmissionService {
     productID?: string,
     search?: string,
     branchID?: number,
+    createdBy?: string,
   ): Promise<PaginatedResponse<Submission>> {
     // Konversi eksplisit ke number untuk memastikan response selalu integer
     const page = Number(paginationQuery.page) || 1;
@@ -143,6 +144,13 @@ export class SubmissionService {
     // Filter by productID (exact match)
     if (productID) {
       queryBuilder.andWhere('submission.productID = :productID', { productID });
+    }
+
+    // Filter by createdBy (exact match)
+    if (createdBy) {
+      queryBuilder.andWhere('submission.createdBy = :createdBy', {
+        createdBy: Number(createdBy),
+      });
     }
 
     // Search by policyHolderName, policyHolderNik, or submissionNumber (ILIKE)
