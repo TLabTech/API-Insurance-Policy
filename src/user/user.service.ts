@@ -47,7 +47,9 @@ export class UserService {
           )
         : baseConditions;
     } else if (roleID) {
-      where = { role: { id: Number.parseInt(roleID) } } as FindOptionsWhere<User>;
+      where = {
+        role: { id: Number.parseInt(roleID) },
+      } as FindOptionsWhere<User>;
     }
 
     const [data, total_data] = await this.userRepository.findAndCount({

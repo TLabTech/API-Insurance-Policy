@@ -11,15 +11,23 @@ console.log('🔧 DB CONFIG: ', {
   database: process.env.DB_NAME,
 });
 
+// Detect if running under ts-node
+const tsNodeSymbol = Symbol.for('ts-node.register.instance');
+const isTsNode =
+  process.env.TS_NODE === 'true' ||
+  Reflect.has(process as object, tsNodeSymbol);
+
 const AppDataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
+  port: Number.parseInt(process.env.DB_PORT || '5432', 10),
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'postgres',
-  entities: ['dist/**/*.entity{.ts,.js}'],
-  migrations: ['dist/db/migrations/*{.ts,.js}'],
+  entities: isTsNode ? ['src/**/*.entity.ts'] : ['dist/**/*.entity.js'],
+  migrations: isTsNode
+    ? ['src/db/migrations/*{.ts,.js}']
+    : ['dist/db/migrations/*{.js}'],
   migrationsTableName: 'migrations',
   synchronize: false,
   logging: true,
